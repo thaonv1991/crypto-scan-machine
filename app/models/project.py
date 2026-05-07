@@ -6,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     Float,
+    ForeignKey,
     Index,
     Integer,
     String,
@@ -103,7 +104,9 @@ class Project(Base, UUIDMixin, TimestampMixin):
 class ProjectScore(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "project_scores"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Individual engine scores (0-100)
     engine1_score: Mapped[float] = mapped_column(Float, default=0.0)
@@ -137,7 +140,9 @@ class ProjectScore(Base, UUIDMixin, TimestampMixin):
 class TokenLaunch(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "token_launches"
 
-    project_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), index=True)
+    project_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="SET NULL"), index=True
+    )
 
     # Launch info
     launchpad: Mapped[str] = mapped_column(String(100), nullable=False)

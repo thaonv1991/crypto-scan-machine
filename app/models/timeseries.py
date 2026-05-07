@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, Index, Integer, String, func
+from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,7 +16,9 @@ class MarketData(Base):
     time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), primary_key=True, server_default=func.now()
     )
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
 
     # Price data
     price_usd: Mapped[float | None] = mapped_column(Float)
@@ -65,7 +67,9 @@ class SocialData(Base):
     time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), primary_key=True, server_default=func.now()
     )
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
 
     # Twitter metrics
     twitter_followers: Mapped[int | None] = mapped_column(Integer)
@@ -108,7 +112,9 @@ class ScoreHistory(Base):
     time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), primary_key=True, server_default=func.now()
     )
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), primary_key=True
+    )
 
     # Scores
     engine1_score: Mapped[float] = mapped_column(Float, default=0.0)

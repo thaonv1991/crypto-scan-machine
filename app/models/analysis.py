@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,7 +12,9 @@ from app.models.base import TimestampMixin, UUIDMixin
 class RedFlag(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "red_flags"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Flag info
     flag_type: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -45,7 +47,9 @@ class RedFlag(Base, UUIDMixin, TimestampMixin):
 class AIReport(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "ai_reports"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Report info
     report_type: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -77,7 +81,9 @@ class AIReport(Base, UUIDMixin, TimestampMixin):
 class AlertLog(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "alerts_log"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Alert info
     alert_type: Mapped[str] = mapped_column(String(50), nullable=False)
@@ -108,7 +114,9 @@ class UserWatchlist(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "user_watchlist"
 
     user_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Settings
     alert_enabled: Mapped[bool] = mapped_column(Boolean, default=True)

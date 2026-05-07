@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Float, Index, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -12,7 +12,9 @@ from app.models.base import TimestampMixin, UUIDMixin
 class OnchainData(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "onchain_data"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Token info
     total_supply: Mapped[float | None] = mapped_column(Float)
@@ -58,7 +60,9 @@ class OnchainData(Base, UUIDMixin, TimestampMixin):
 class WhaleActivity(Base, UUIDMixin, TimestampMixin):
     __tablename__ = "whale_activities"
 
-    project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
 
     # Wallet info
     wallet_address: Mapped[str] = mapped_column(String(255), nullable=False)
