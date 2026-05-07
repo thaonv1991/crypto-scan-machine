@@ -1,0 +1,50 @@
+[tool.poetry]
+name = "crypto-scan-machine"
+description = "Crypto Scan Machine - 24/7 cryptocurrency scanning and scoring system"
+version = "0.1.0"
+authors = ["CryptoScanTeam"]
+readme = "README.md"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.14"
+fastapi = "^0.115.0"
+uvicorn = {version = "^0.34.0", extras = ["standard"]}
+sqlalchemy = {version = "^2.0.40", extras = ["asyncio"]}
+asyncpg = "^0.30.0"
+alembic = "^1.14.0"
+redis = "^5.2.0"
+celery = {version = "^5.4.0", extras = ["redis"]}
+httpx = "^0.28.0"
+beautifulsoup4 = "^4.12.0"
+pydantic-settings = "^2.7.0"
+python-dotenv = "^1.0.0"
+structlog = "^24.4.0"
+apscheduler = "^3.10.0"
+openai = "^1.60.0"
+python-telegram-bot = "^21.0"
+aiohttp = "^3.11.0"
+tenacity = "^9.0.0"
+psycopg2-binary = "^2.9.12"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.8.0"
+mypy = "^1.13.0"
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
