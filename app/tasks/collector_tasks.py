@@ -25,11 +25,15 @@ async def _scan_new_projects():
             try:
                 dex_count = await processor.scan_new_projects_dexscreener(session)
                 cg_count = await processor.scan_trending_coingecko(session)
+                gt_count = await processor.scan_trending_geckoterminal(session)
+                dl_count = await processor.scan_protocols_defillama(session)
                 await session.commit()
                 logger.info(
                     "task.scan_new_projects.done",
                     dexscreener_new=dex_count,
                     coingecko_new=cg_count,
+                    geckoterminal_new=gt_count,
+                    defillama_new=dl_count,
                 )
             except Exception:
                 await session.rollback()
@@ -45,11 +49,15 @@ async def _collect_market_data():
             try:
                 dex_count = await processor.collect_market_data_dexscreener(session)
                 cg_count = await processor.collect_market_data_coingecko(session)
+                gt_count = await processor.collect_market_data_geckoterminal(session)
+                cmc_count = await processor.collect_market_data_coinmarketcap(session)
                 await session.commit()
                 logger.info(
                     "task.collect_market_data.done",
                     dexscreener=dex_count,
                     coingecko=cg_count,
+                    geckoterminal=gt_count,
+                    coinmarketcap=cmc_count,
                 )
             except Exception:
                 await session.rollback()

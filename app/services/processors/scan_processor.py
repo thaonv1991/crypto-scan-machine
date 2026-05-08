@@ -15,7 +15,10 @@ from app.models.onchain import OnchainData
 from app.models.project import Project, ProjectStatus
 from app.models.timeseries import MarketData, SocialData
 from app.services.collectors.coingecko import CoinGeckoCollector
+from app.services.collectors.coinmarketcap import CoinMarketCapCollector
+from app.services.collectors.defillama import DeFiLlamaCollector
 from app.services.collectors.dexscreener import DexScreenerCollector
+from app.services.collectors.geckoterminal import GeckoTerminalCollector
 from app.services.collectors.goplus import BLOCKCHAIN_TO_CHAIN_ID, GoPlusCollector
 from app.services.collectors.reddit import RedditCollector
 
@@ -30,12 +33,18 @@ class ScanProcessor:
         self.coingecko = CoinGeckoCollector()
         self.goplus = GoPlusCollector()
         self.reddit = RedditCollector()
+        self.geckoterminal = GeckoTerminalCollector()
+        self.defillama = DeFiLlamaCollector()
+        self.coinmarketcap = CoinMarketCapCollector()
 
     async def close_all(self) -> None:
         await self.dexscreener.close()
         await self.coingecko.close()
         await self.goplus.close()
         await self.reddit.close()
+        await self.geckoterminal.close()
+        await self.defillama.close()
+        await self.coinmarketcap.close()
 
     # --- Engine 1: New Project Discovery ---
 
@@ -120,6 +129,83 @@ class ScanProcessor:
 
         except Exception as e:
             logger.error("scan.coingecko_trending_failed", error=str(e))
+
+        return created_count
+
+    async def scan_trending_geckoterminal(self, db: AsyncSession) -> int:
+        """Discover new projects from GeckoTerminal trending pools."""
+        created_count = 0
+        try:
+            pools = await self.geckoterminal.get_trending_pools()
+            logger.info("scan.geckoterminal_trending", count=len(pools))
+
+            for pool in pools:
+                normalized = self.geckoterminal.normalize_pool_to_project(pool)
+                slug = normalized["slug"]
+
+                existing = await db.execute(select(Project).where(Project.slug == slug))
+                if existing.scalar_one_or_none():
+                    continue
+
+                project = Project(
+                    name=normalized["name"],
+                    slug=slug,
+                    contract_address=normalized.get("contract_address"),
+                    blockchain=normalized.get("blockchain", "ethereum"),
+                    source="geckoterminal",
+                    status=ProjectStatus.NEW.value,
+                    extra_data=normalized.get("extra_data", {}),
+                )
+                db.add(project)
+                created_count += 1
+
+            if created_count > 0:
+                await db.flush()
+                logger.info("scan.new_projects_created", source="geckoterminal", count=created_count)
+
+        except Exception as e:
+            logger.error("scan.geckoterminal_failed", error=str(e))
+
+        return created_count
+
+    async def scan_protocols_defillama(self, db: AsyncSession) -> int:
+        """Discover DeFi protocols from DeFiLlama (top by TVL)."""
+        created_count = 0
+        try:
+            protocols = await self.defillama.get_protocols()
+            top_protocols = protocols[:200]
+            logger.info("scan.defillama_protocols", count=len(top_protocols))
+
+            for proto in top_protocols:
+                normalized = self.defillama.normalize_protocol_to_project(proto)
+                slug = normalized["slug"]
+
+                existing = await db.execute(select(Project).where(Project.slug == slug))
+                if existing.scalar_one_or_none():
+                    continue
+
+                project = Project(
+                    name=normalized["name"],
+                    symbol=normalized.get("symbol"),
+                    slug=slug,
+                    blockchain=normalized.get("blockchain", "multi-chain"),
+                    website=normalized.get("website"),
+                    description=normalized.get("description"),
+                    logo_url=normalized.get("logo_url"),
+                    twitter_url=normalized.get("twitter_url"),
+                    source="defillama",
+                    status=ProjectStatus.NEW.value,
+                    extra_data=normalized.get("extra_data", {}),
+                )
+                db.add(project)
+                created_count += 1
+
+            if created_count > 0:
+                await db.flush()
+                logger.info("scan.new_projects_created", source="defillama", count=created_count)
+
+        except Exception as e:
+            logger.error("scan.defillama_failed", error=str(e))
 
         return created_count
 
@@ -233,6 +319,118 @@ class ScanProcessor:
 
         except Exception as e:
             logger.error("market.coingecko_failed", error=str(e))
+
+        return collected
+
+    async def collect_market_data_geckoterminal(self, db: AsyncSession) -> int:
+        """Collect market data from GeckoTerminal trending pools."""
+        collected = 0
+        try:
+            pools = await self.geckoterminal.get_trending_pools()
+            logger.info("market.geckoterminal_fetched", count=len(pools))
+
+            for pool in pools:
+                market = self.geckoterminal.normalize_pool_to_market_data(pool)
+                pool_name = market.get("name", "")
+                slug = f"gt-pool-{market.get('pool_address', '')}"
+
+                result = await db.execute(select(Project).where(Project.slug == slug))
+                project = result.scalar_one_or_none()
+
+                if not project:
+                    project = Project(
+                        name=pool_name,
+                        slug=slug,
+                        blockchain="ethereum",
+                        source="geckoterminal",
+                        status=ProjectStatus.MONITORING.value,
+                        extra_data=market.get("extra_data", {}),
+                    )
+                    db.add(project)
+                    await db.flush()
+
+                market_data = MarketData(
+                    time=datetime.now(timezone.utc),
+                    project_id=project.id,
+                    price_usd=market.get("price_usd"),
+                    volume_24h=market.get("volume_24h"),
+                    market_cap=market.get("market_cap"),
+                    fdv=market.get("fdv"),
+                    liquidity_usd=market.get("liquidity_usd"),
+                    price_change_1h=market.get("price_change_1h"),
+                    price_change_24h=market.get("price_change_24h"),
+                    buy_count=market.get("buy_count"),
+                    sell_count=market.get("sell_count"),
+                    source="geckoterminal",
+                    extra_data=market.get("extra_data"),
+                )
+                db.add(market_data)
+                collected += 1
+
+            if collected > 0:
+                await db.flush()
+                logger.info("market.geckoterminal_collected", count=collected)
+
+        except Exception as e:
+            logger.error("market.geckoterminal_failed", error=str(e))
+
+        return collected
+
+    async def collect_market_data_coinmarketcap(self, db: AsyncSession) -> int:
+        """Collect market data from CoinMarketCap (requires API key)."""
+        if not self.coinmarketcap.is_configured():
+            logger.info("market.coinmarketcap_skipped", reason="not_configured")
+            return 0
+
+        collected = 0
+        try:
+            coins = await self.coinmarketcap.get_listings_latest(limit=100)
+            logger.info("market.coinmarketcap_fetched", count=len(coins))
+
+            for coin in coins:
+                normalized_project = self.coinmarketcap.normalize_to_project(coin)
+                slug = normalized_project["slug"]
+
+                result = await db.execute(select(Project).where(Project.slug == slug))
+                project = result.scalar_one_or_none()
+
+                if not project:
+                    project = Project(
+                        name=normalized_project["name"],
+                        symbol=normalized_project.get("symbol"),
+                        slug=slug,
+                        contract_address=normalized_project.get("contract_address"),
+                        blockchain=normalized_project.get("blockchain", "unknown"),
+                        source="coinmarketcap",
+                        status=ProjectStatus.MONITORING.value,
+                        extra_data=normalized_project.get("extra_data", {}),
+                    )
+                    db.add(project)
+                    await db.flush()
+
+                market = self.coinmarketcap.normalize_to_market_data(coin)
+                market_data = MarketData(
+                    time=datetime.now(timezone.utc),
+                    project_id=project.id,
+                    price_usd=market.get("price_usd"),
+                    volume_24h=market.get("volume_24h"),
+                    market_cap=market.get("market_cap"),
+                    fdv=market.get("fdv"),
+                    price_change_1h=market.get("price_change_1h"),
+                    price_change_24h=market.get("price_change_24h"),
+                    price_change_7d=market.get("price_change_7d"),
+                    source="coinmarketcap",
+                    extra_data=market.get("extra_data"),
+                )
+                db.add(market_data)
+                collected += 1
+
+            if collected > 0:
+                await db.flush()
+                logger.info("market.coinmarketcap_collected", count=collected)
+
+        except Exception as e:
+            logger.error("market.coinmarketcap_failed", error=str(e))
 
         return collected
 
