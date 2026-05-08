@@ -140,9 +140,26 @@ def collect_onchain_data(self):
         raise self.retry(exc=exc)
 
 
+async def _cleanup_old_data():
+    from app.services.processors.cleanup_processor import CleanupProcessor
+
+    processor = CleanupProcessor()
+    async with async_session_factory() as session:
+        try:
+            result = await processor.run_full_cleanup(session)
+            await session.commit()
+            logger.info("task.cleanup_old_data.done", **result)
+        except Exception:
+            await session.rollback()
+            raise
+
+
 @celery_app.task(bind=True, max_retries=1, default_retry_delay=300)
 def cleanup_old_data(self):
-    """Archive old data to cold storage."""
+    """Archive old data to cold storage and clean up stale records."""
     logger.info("task.cleanup_old_data.start")
-    # TODO: Implement in Phase 6
-    logger.info("task.cleanup_old_data.complete")
+    try:
+        _run_async(_cleanup_old_data())
+    except Exception as exc:
+        logger.error("task.cleanup_old_data.error", error=str(exc))
+        raise self.retry(exc=exc)

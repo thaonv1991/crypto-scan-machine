@@ -5,6 +5,7 @@ import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.admin import router as admin_router
 from app.api.health import router as health_router
 from app.api.projects import router as projects_router
 from app.core.config import settings
@@ -52,6 +53,7 @@ app.add_middleware(
 # Routers
 app.include_router(health_router)
 app.include_router(projects_router)
+app.include_router(admin_router)
 
 
 @app.get("/")
