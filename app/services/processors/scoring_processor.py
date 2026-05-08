@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.analysis import AIReport
 from app.models.onchain import OnchainData
 from app.models.project import Project, ProjectScore
 from app.models.timeseries import MarketData, ScoreHistory, SocialData
@@ -118,7 +119,8 @@ class ScoringProcessor:
         e2 = self.market_scorer.calculate(market_data)
         e3 = self.social_scorer.calculate(social_data)
         e4 = self.security_scorer.calculate(security_data)
-        e5 = self.ai_scorer.calculate({})
+        ai_data = await self._get_latest_ai_report(db, project.id)
+        e5 = self.ai_scorer.calculate(ai_data)
 
         total_score = (
             e1["score"] * self.weights["engine1"]
@@ -315,6 +317,32 @@ class ScoringProcessor:
         ]
 
         return data
+
+    async def _get_latest_ai_report(self, db: AsyncSession, project_id) -> dict:
+        """Fetch the most recent AI analysis report for a project."""
+        result = await db.execute(
+            select(AIReport)
+            .where(
+                AIReport.project_id == project_id,
+                AIReport.report_type == "full_analysis",
+            )
+            .order_by(AIReport.created_at.desc())
+            .limit(1)
+        )
+        row = result.scalar_one_or_none()
+        if not row:
+            return {}
+
+        structured = row.structured_data or {}
+        return {
+            "ai_score": row.ai_score,
+            "confidence": row.confidence,
+            "ai_model": row.ai_model,
+            "recommendation": structured.get("recommendation", row.recommendation),
+            "risk_level": structured.get("risk_level", "medium"),
+            "analysis": structured.get("analysis", {}),
+            "provider": row.ai_model.split("/")[0] if "/" in row.ai_model else row.ai_model,
+        }
 
     async def _get_previous_total_score(self, db: AsyncSession, project_id) -> float | None:
         """Get the previous total score for delta calculation."""

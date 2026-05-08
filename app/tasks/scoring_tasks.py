@@ -3,6 +3,7 @@ import asyncio
 import structlog
 
 from app.core.database import async_session_factory
+from app.services.processors.ai_processor import AIAnalysisProcessor
 from app.services.processors.scoring_processor import ScoringProcessor
 from app.tasks.celery_app import celery_app
 
@@ -57,12 +58,29 @@ def calculate_all_scores(self):
         raise self.retry(exc=exc)
 
 
+async def _run_ai_analysis():
+    processor = AIAnalysisProcessor()
+    async with async_session_factory() as session:
+        try:
+            result = await processor.run_analysis_cycle(session)
+            await session.commit()
+            logger.info("task.run_ai_analysis.done", **result)
+        except Exception:
+            await session.rollback()
+            raise
+        finally:
+            await processor.close_all()
+
+
 @celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
 def run_ai_analysis(self):
     """Engine 5: Run AI analysis on top-scoring projects."""
     logger.info("task.run_ai_analysis.start")
-    # TODO: Implement in Phase 3
-    logger.info("task.run_ai_analysis.complete")
+    try:
+        _run_async(_run_ai_analysis())
+    except Exception as exc:
+        logger.error("task.run_ai_analysis.error", error=str(exc))
+        raise self.retry(exc=exc)
 
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=30)
