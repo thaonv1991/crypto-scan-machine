@@ -135,8 +135,9 @@ class DeepSeekProvider(BaseAIProvider):
     rate_limit_name = "deepseek"
 
     def __init__(self, api_key: str | None = None):
+        key = api_key or os.getenv("DEEPSEEK_API_KEY", "")
         super().__init__(
-            api_key=api_key or os.getenv("DEEPSEEK_API_KEY", ""),
+            api_key=key or "",
             base_url="https://api.deepseek.com",
             default_model="deepseek-chat",
         )
@@ -149,8 +150,9 @@ class GeminiProvider(BaseAIProvider):
     rate_limit_name = "gemini"
 
     def __init__(self, api_key: str | None = None):
+        key = api_key or os.getenv("GEMINI_API_KEY", "")
         super().__init__(
-            api_key=api_key or os.getenv("GEMINI_API_KEY", ""),
+            api_key=key or "",
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
             default_model="gemini-2.0-flash",
         )
@@ -163,8 +165,9 @@ class OpenAIProvider(BaseAIProvider):
     rate_limit_name = "openai"
 
     def __init__(self, api_key: str | None = None):
+        key = api_key or os.getenv("OPENAI_API_KEY", "")
         super().__init__(
-            api_key=api_key or os.getenv("OPENAI_API_KEY", ""),
+            api_key=key or "",
             base_url="https://api.openai.com/v1",
             default_model="gpt-4o-mini",
         )

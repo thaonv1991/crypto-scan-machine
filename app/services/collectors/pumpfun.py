@@ -123,7 +123,7 @@ class PumpFunCollector(BaseCollector):
         """Normalize Pump.fun coin data to market data format."""
         return {
             "price_usd": (
-                raw.get("usd_market_cap") / raw.get("total_supply")
+                float(raw["usd_market_cap"]) / float(raw["total_supply"])
                 if raw.get("usd_market_cap") and raw.get("total_supply")
                 else None
             ),

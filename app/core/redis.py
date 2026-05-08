@@ -1,12 +1,17 @@
+from typing import cast
+
 import redis.asyncio as aioredis
 
 from app.core.config import settings
 
-redis_client = aioredis.from_url(
-    settings.redis_url,
-    encoding="utf-8",
-    decode_responses=True,
-    max_connections=50,
+redis_client: aioredis.Redis = cast(
+    aioredis.Redis,
+    aioredis.from_url(
+        settings.redis_url,
+        encoding="utf-8",
+        decode_responses=True,
+        max_connections=50,
+    ),
 )
 
 
