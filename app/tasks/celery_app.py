@@ -10,6 +10,7 @@ celery_app = Celery(
     include=[
         "app.tasks.collector_tasks",
         "app.tasks.scoring_tasks",
+        "app.tasks.alert_tasks",
     ],
 )
 
@@ -58,6 +59,16 @@ celery_app.conf.beat_schedule = {
     "ai-analysis": {
         "task": "app.tasks.scoring_tasks.run_ai_analysis",
         "schedule": crontab(minute=0),
+    },
+    # Alerts: Send alerts every 20 minutes
+    "send-alerts": {
+        "task": "app.tasks.alert_tasks.send_alerts",
+        "schedule": crontab(minute="*/20"),
+    },
+    # Daily summary at 8 AM UTC
+    "daily-summary": {
+        "task": "app.tasks.alert_tasks.send_daily_summary",
+        "schedule": crontab(hour=8, minute=0),
     },
     # Cleanup: Archive old data daily at 3 AM
     "cleanup-old-data": {
