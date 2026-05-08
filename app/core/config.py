@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     # External APIs
     coingecko_api_key: str = ""
     etherscan_api_key: str = ""
+    bscscan_api_key: str = ""
+    solscan_api_key: str = ""
+    helius_api_key: str = ""
+    youtube_api_key: str = ""
+    lunarcrush_api_key: str = ""
+    cryptorank_api_key: str = ""
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 

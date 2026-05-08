@@ -35,6 +35,11 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.collector_tasks.scan_new_projects",
         "schedule": crontab(minute="*/15"),
     },
+    # Scan launchpads every 30 minutes
+    "scan-launchpads": {
+        "task": "app.tasks.collector_tasks.scan_launchpads",
+        "schedule": crontab(minute="*/30"),
+    },
     # Engine 2: Collect market data every 5 minutes
     "collect-market-data": {
         "task": "app.tasks.collector_tasks.collect_market_data",
@@ -45,10 +50,20 @@ celery_app.conf.beat_schedule = {
         "task": "app.tasks.collector_tasks.collect_social_data",
         "schedule": crontab(minute="*/30"),
     },
+    # Social intelligence (YouTube, LunarCrush) every hour
+    "collect-social-intelligence": {
+        "task": "app.tasks.collector_tasks.collect_social_intelligence",
+        "schedule": crontab(minute=15),
+    },
     # Engine 4: Collect on-chain data every 10 minutes
     "collect-onchain-data": {
         "task": "app.tasks.collector_tasks.collect_onchain_data",
         "schedule": crontab(minute="*/10"),
+    },
+    # Multi-chain on-chain data (BSCScan, Solscan, Helius) every 15 minutes
+    "collect-multichain-onchain": {
+        "task": "app.tasks.collector_tasks.collect_multichain_onchain",
+        "schedule": crontab(minute="*/15"),
     },
     # Scoring: Recalculate scores every 15 minutes
     "calculate-scores": {

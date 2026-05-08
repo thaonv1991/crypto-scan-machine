@@ -42,6 +42,32 @@ async def _scan_new_projects():
         await processor.close_all()
 
 
+async def _scan_launchpads():
+    """Scan launchpads for upcoming and new token launches."""
+    from app.services.collectors.binance_launchpad import BinanceLaunchpadCollector
+    from app.services.collectors.daomaker import DAOMakerCollector
+    from app.services.collectors.pinksale import PinksaleCollector
+    from app.services.collectors.pumpfun import PumpFunCollector
+
+    collectors = [
+        ("pumpfun", PumpFunCollector()),
+        ("pinksale", PinksaleCollector()),
+        ("daomaker", DAOMakerCollector()),
+        ("binance_launchpad", BinanceLaunchpadCollector()),
+    ]
+    total = 0
+    for name, collector in collectors:
+        try:
+            results = await collector.collect()
+            total += len(results)
+            logger.info("task.scan_launchpads.source_done", source=name, count=len(results))
+        except Exception as e:
+            logger.error("task.scan_launchpads.source_error", source=name, error=str(e))
+        finally:
+            await collector.close()
+    return total
+
+
 async def _collect_market_data():
     processor = ScanProcessor()
     try:
@@ -81,6 +107,36 @@ async def _collect_social_data():
         await processor.close_all()
 
 
+async def _collect_social_intelligence():
+    """Collect social intelligence from YouTube and LunarCrush."""
+    from app.services.collectors.lunarcrush import LunarCrushCollector
+    from app.services.collectors.youtube import YouTubeCollector
+
+    results = {"youtube": 0, "lunarcrush": 0}
+
+    yt = YouTubeCollector()
+    try:
+        if yt.is_configured():
+            data = await yt.collect(query="crypto new token launch", max_results=5)
+            results["youtube"] = len(data)
+    except Exception as e:
+        logger.error("task.social_intelligence.youtube_error", error=str(e))
+    finally:
+        await yt.close()
+
+    lc = LunarCrushCollector()
+    try:
+        if lc.is_configured():
+            data = await lc.collect(mode="trending")
+            results["lunarcrush"] = len(data)
+    except Exception as e:
+        logger.error("task.social_intelligence.lunarcrush_error", error=str(e))
+    finally:
+        await lc.close()
+
+    return results
+
+
 async def _collect_onchain_data():
     processor = ScanProcessor()
     try:
@@ -96,6 +152,48 @@ async def _collect_onchain_data():
         await processor.close_all()
 
 
+async def _collect_multichain_onchain():
+    """Collect on-chain data from BSCScan, Solscan, Helius."""
+    from app.services.collectors.bscscan import BSCScanCollector
+    from app.services.collectors.helius import HeliusCollector
+    from app.services.collectors.solscan import SolscanCollector
+
+    results = {"bscscan": 0, "solscan": 0, "helius": 0}
+    collectors_to_close = []
+
+    bsc = BSCScanCollector()
+    collectors_to_close.append(bsc)
+    if bsc.is_configured():
+        try:
+            logger.info("task.multichain_onchain.bscscan_ready")
+            results["bscscan"] = 1
+        except Exception as e:
+            logger.error("task.multichain_onchain.bscscan_error", error=str(e))
+
+    sol = SolscanCollector()
+    collectors_to_close.append(sol)
+    if sol.is_configured():
+        try:
+            logger.info("task.multichain_onchain.solscan_ready")
+            results["solscan"] = 1
+        except Exception as e:
+            logger.error("task.multichain_onchain.solscan_error", error=str(e))
+
+    hel = HeliusCollector()
+    collectors_to_close.append(hel)
+    if hel.is_configured():
+        try:
+            logger.info("task.multichain_onchain.helius_ready")
+            results["helius"] = 1
+        except Exception as e:
+            logger.error("task.multichain_onchain.helius_error", error=str(e))
+
+    for c in collectors_to_close:
+        await c.close()
+
+    return results
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def scan_new_projects(self):
     """Engine 1: Scan launchpads and DEXes for new projects."""
@@ -104,6 +202,18 @@ def scan_new_projects(self):
         _run_async(_scan_new_projects())
     except Exception as exc:
         logger.error("task.scan_new_projects.error", error=str(exc))
+        raise self.retry(exc=exc)
+
+
+@celery_app.task(bind=True, max_retries=3, default_retry_delay=120)
+def scan_launchpads(self):
+    """Scan launchpads: Pump.fun, Pinksale, DAO Maker, Binance Launchpad."""
+    logger.info("task.scan_launchpads.start")
+    try:
+        total = _run_async(_scan_launchpads())
+        logger.info("task.scan_launchpads.done", total=total)
+    except Exception as exc:
+        logger.error("task.scan_launchpads.error", error=str(exc))
         raise self.retry(exc=exc)
 
 
@@ -129,6 +239,18 @@ def collect_social_data(self):
         raise self.retry(exc=exc)
 
 
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def collect_social_intelligence(self):
+    """Collect social intelligence from YouTube and LunarCrush."""
+    logger.info("task.collect_social_intelligence.start")
+    try:
+        results = _run_async(_collect_social_intelligence())
+        logger.info("task.collect_social_intelligence.done", **results)
+    except Exception as exc:
+        logger.error("task.collect_social_intelligence.error", error=str(exc))
+        raise self.retry(exc=exc)
+
+
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def collect_onchain_data(self):
     """Engine 4: Collect on-chain data."""
@@ -137,6 +259,18 @@ def collect_onchain_data(self):
         _run_async(_collect_onchain_data())
     except Exception as exc:
         logger.error("task.collect_onchain_data.error", error=str(exc))
+        raise self.retry(exc=exc)
+
+
+@celery_app.task(bind=True, max_retries=2, default_retry_delay=120)
+def collect_multichain_onchain(self):
+    """Collect on-chain data from BSCScan, Solscan, Helius."""
+    logger.info("task.collect_multichain_onchain.start")
+    try:
+        results = _run_async(_collect_multichain_onchain())
+        logger.info("task.collect_multichain_onchain.done", **results)
+    except Exception as exc:
+        logger.error("task.collect_multichain_onchain.error", error=str(exc))
         raise self.retry(exc=exc)
 
 
