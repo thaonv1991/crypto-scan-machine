@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Float, ForeignKey, Index, Integer, String, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
+
+if TYPE_CHECKING:
+    from app.models.project import Project
 
 
 class MarketData(Base):
@@ -52,7 +58,7 @@ class MarketData(Base):
     extra_data: Mapped[dict | None] = mapped_column(JSONB)
 
     # Relationship
-    project: Mapped["Project"] = relationship(back_populates="market_data")  # noqa: F821
+    project: Mapped[Project] = relationship(back_populates="market_data")
 
     __table_args__ = (
         Index("ix_market_data_project_time", "project_id", "time"),
@@ -97,7 +103,7 @@ class SocialData(Base):
     extra_data: Mapped[dict | None] = mapped_column(JSONB)
 
     # Relationship
-    project: Mapped["Project"] = relationship(back_populates="social_data")  # noqa: F821
+    project: Mapped[Project] = relationship(back_populates="social_data")
 
     __table_args__ = (
         Index("ix_social_data_project_time", "project_id", "time"),

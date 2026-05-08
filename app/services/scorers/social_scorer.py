@@ -186,7 +186,7 @@ class SocialScorer(BaseScorer):
             normalized = (sentiment_score + 1) / 2 * 20
             return min(20.0, max(0.0, normalized))
 
-        label_scores = {
+        label_scores: dict[str, float] = {
             "very_positive": 18.0,
             "positive": 14.0,
             "neutral": 10.0,

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -7,6 +10,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.base import TimestampMixin, UUIDMixin
+
+if TYPE_CHECKING:
+    from app.models.project import Project
 
 
 class RedFlag(Base, UUIDMixin, TimestampMixin):
@@ -35,7 +41,7 @@ class RedFlag(Base, UUIDMixin, TimestampMixin):
     evidence: Mapped[dict | None] = mapped_column(JSONB)
 
     # Relationship
-    project: Mapped["Project"] = relationship(back_populates="red_flags")  # noqa: F821
+    project: Mapped[Project] = relationship(back_populates="red_flags")
 
     __table_args__ = (
         Index("ix_red_flags_project_active", "project_id", "is_active"),

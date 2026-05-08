@@ -61,7 +61,7 @@ class TelegramBot:
 
             if len(text) > MAX_MESSAGE_LENGTH:
                 return await self._send_long_message(
-                    client, target_chat, text, parse_mode, disable_preview
+                    client, target_chat or "", text, parse_mode, disable_preview
                 )
 
             payload: dict = {
@@ -84,12 +84,13 @@ class TelegramBot:
                 )
                 return None
 
+            result_data: dict = data["result"]
             logger.info(
                 "telegram.message_sent",
                 chat_id=target_chat,
-                message_id=data["result"]["message_id"],
+                message_id=result_data["message_id"],
             )
-            return data["result"]
+            return result_data
 
         except Exception as e:
             logger.error("telegram.send_error", error=str(e))

@@ -101,7 +101,7 @@ class CleanupProcessor:
         results["cold_storage_bytes"] = await self._archive_to_cold_storage(db)
 
         elapsed = time.monotonic() - start_time
-        results["duration_seconds"] = round(elapsed, 2)
+        results["duration_seconds"] = round(elapsed, 2)  # type: ignore[assignment]
 
         logger.info("cleanup.full_cleanup.done", **results)
         return results
@@ -119,7 +119,7 @@ class CleanupProcessor:
         result = await db.execute(
             delete(MarketData).where(MarketData.time < cutoff)
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.market_data.deleted", count=count, cutoff=cutoff.isoformat())
         return count
@@ -136,7 +136,7 @@ class CleanupProcessor:
         result = await db.execute(
             delete(SocialData).where(SocialData.time < cutoff)
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.social_data.deleted", count=count, cutoff=cutoff.isoformat())
         return count
@@ -153,7 +153,7 @@ class CleanupProcessor:
         result = await db.execute(
             delete(ScoreHistory).where(ScoreHistory.time < cutoff)
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.score_history.deleted", count=count, cutoff=cutoff.isoformat())
         return count
@@ -164,7 +164,7 @@ class CleanupProcessor:
         result = await db.execute(
             delete(AlertLog).where(AlertLog.created_at < cutoff)
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.alert_logs.deleted", count=count)
         return count
@@ -175,7 +175,7 @@ class CleanupProcessor:
         result = await db.execute(
             delete(WhaleActivity).where(WhaleActivity.created_at < cutoff)
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.whale_activities.deleted", count=count)
         return count
@@ -231,7 +231,7 @@ class CleanupProcessor:
             )
             .values(status="archived", is_active=False)
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.projects.archived", count=count)
         return count
@@ -249,7 +249,7 @@ class CleanupProcessor:
             )
             .values(is_active=False, resolved_at=datetime.now(timezone.utc))
         )
-        count = result.rowcount
+        count = int(result.rowcount or 0)  # type: ignore[attr-defined]
         if count > 0:
             logger.info("cleanup.red_flags.resolved", count=count)
         return count

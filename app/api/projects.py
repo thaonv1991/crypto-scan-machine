@@ -48,17 +48,16 @@ async def list_projects(
     total = (await db.execute(count_query)).scalar() or 0
 
     # Sort
-    if sort_by == "discovered_at":
-        sort_col = Project.discovered_at
-    elif sort_by == "name":
-        sort_col = Project.name
-    else:
-        sort_col = Project.discovered_at
-
     if order == "asc":
-        query = query.order_by(sort_col.asc())
+        if sort_by == "name":
+            query = query.order_by(Project.name.asc())
+        else:
+            query = query.order_by(Project.discovered_at.asc())
     else:
-        query = query.order_by(sort_col.desc())
+        if sort_by == "name":
+            query = query.order_by(Project.name.desc())
+        else:
+            query = query.order_by(Project.discovered_at.desc())
 
     # Paginate
     query = query.offset((page - 1) * per_page).limit(per_page)

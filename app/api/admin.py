@@ -17,6 +17,7 @@ from app.schemas.admin import (
     BulkActionResponse,
     BulkStatusUpdate,
     CleanupConfigResponse,
+    CollectorStatusResponse,
     DataSourceCreate,
     DataSourceListResponse,
     DataSourceResponse,
@@ -124,7 +125,7 @@ async def bulk_update_status(
     result = await db.execute(
         update(Project).where(Project.id.in_(data.project_ids)).values(**values)
     )
-    count = result.rowcount
+    count = int(result.rowcount or 0)  # type: ignore[attr-defined]
     logger.info("admin.projects.bulk_status", count=count, status=data.status)
     return BulkActionResponse(
         updated=count,
@@ -412,7 +413,7 @@ async def get_system_status(db: AsyncSession = Depends(get_db)):
 
     collectors = []
     for cfg in collector_configs:
-        db_src = db_sources.get(cfg["name"])
+        db_src = db_sources.get(str(cfg["name"]))
         from app.core.config import settings
         is_configured = True
         if cfg["name"] == "etherscan":
@@ -447,7 +448,7 @@ async def get_system_status(db: AsyncSession = Depends(get_db)):
         database=db_status,
         redis=redis_status,
         celery=celery_status,
-        collectors=collectors,
+        collectors=[CollectorStatusResponse(**c) for c in collectors],  # type: ignore[arg-type]
         total_projects=total_projects,
         active_projects=active_projects,
         total_scores=total_scores,
@@ -644,13 +645,24 @@ async def remove_from_watchlist(
     return {"message": "Removed from watchlist"}
 
 
+def _build_cleanup_response() -> CleanupConfigResponse:
+    """Build CleanupConfigResponse from the in-memory config dict."""
+    return CleanupConfigResponse(
+        market_data_retention_days=int(_cleanup_config["market_data_retention_days"]),  # type: ignore[arg-type]
+        social_data_retention_days=int(_cleanup_config["social_data_retention_days"]),  # type: ignore[arg-type]
+        score_history_retention_days=int(_cleanup_config["score_history_retention_days"]),  # type: ignore[arg-type]
+        inactive_project_archive_days=int(_cleanup_config["inactive_project_archive_days"]),  # type: ignore[arg-type]
+        last_cleanup=_cleanup_config["last_cleanup"],  # type: ignore[arg-type]
+    )
+
+
 # ==================== Cleanup Configuration ====================
 
 
 @router.get("/cleanup/config", response_model=CleanupConfigResponse)
 async def get_cleanup_config():
     """Get current data cleanup configuration."""
-    return CleanupConfigResponse(**_cleanup_config)
+    return _build_cleanup_response()
 
 
 @router.put("/cleanup/config", response_model=CleanupConfigResponse)
@@ -671,7 +683,7 @@ async def update_cleanup_config(
         _cleanup_config["inactive_project_archive_days"] = inactive_project_archive_days
 
     logger.info("admin.cleanup.config_updated", config=_cleanup_config)
-    return CleanupConfigResponse(**_cleanup_config)
+    return _build_cleanup_response()
 
 
 @router.post("/cleanup/run")

@@ -1,4 +1,5 @@
 import abc
+from typing import Any
 
 import httpx
 import structlog
@@ -32,12 +33,13 @@ class BaseCollector(abc.ABC):
             await self._client.aclose()
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=30))
-    async def fetch(self, url: str, params: dict | None = None) -> dict:
+    async def fetch(self, url: str, params: dict | None = None) -> dict[str, Any]:
         await rate_limiters.wait_and_acquire(self.rate_limit_name)
         client = await self.get_client()
         response = await client.get(url, params=params)
         response.raise_for_status()
-        return response.json()
+        result: dict[str, Any] = response.json()
+        return result
 
     @abc.abstractmethod
     async def collect(self, **kwargs) -> list[dict]:

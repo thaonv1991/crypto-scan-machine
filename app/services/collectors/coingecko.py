@@ -11,6 +11,8 @@ Endpoints used:
 - GET /api/v3/coins/{id}/market_chart - Historical market data
 """
 
+from typing import Any
+
 import structlog
 
 from app.core.config import settings
@@ -43,7 +45,7 @@ class CoinGeckoCollector(BaseCollector):
             headers["x-cg-demo-api-key"] = settings.coingecko_api_key
         return headers
 
-    async def fetch(self, url: str, params: dict | None = None) -> dict | list:
+    async def fetch(self, url: str, params: dict | None = None) -> dict[str, Any]:  # type: ignore[override]
         """Override fetch to add CoinGecko API key header if available."""
         from app.utils.rate_limiter import rate_limiters
 
@@ -51,14 +53,17 @@ class CoinGeckoCollector(BaseCollector):
         client = await self.get_client()
         response = await client.get(url, params=params, headers=self._get_headers())
         response.raise_for_status()
-        return response.json()
+        data: Any = response.json()
+        if isinstance(data, dict):
+            return data
+        return {"_list": data}
 
     async def get_trending_coins(self) -> list[dict]:
         """Get trending search coins on CoinGecko."""
         url = f"{BASE_URL}/search/trending"
         try:
             data = await self.fetch(url)
-            coins = data.get("coins", [])
+            coins: list[dict[str, Any]] = data.get("coins", [])
             return [c.get("item", {}) for c in coins]
         except Exception as e:
             logger.error("coingecko.trending_failed", error=str(e))
@@ -86,8 +91,9 @@ class CoinGeckoCollector(BaseCollector):
             params["category"] = category
         try:
             data = await self.fetch(url, params=params)
-            if isinstance(data, list):
-                return data
+            raw_list: list[dict[str, Any]] = data.get("_list", []) if "_list" in data else [data]
+            return raw_list if raw_list != [data] else []
+        except ValueError:
             return []
         except Exception as e:
             logger.error("coingecko.markets_failed", error=str(e))
@@ -105,7 +111,8 @@ class CoinGeckoCollector(BaseCollector):
             "sparkline": "false",
         }
         try:
-            return await self.fetch(url, params=params)
+            result = await self.fetch(url, params=params)
+            return result
         except Exception as e:
             logger.error("coingecko.coin_details_failed", coin_id=coin_id, error=str(e))
             return None
@@ -122,7 +129,8 @@ class CoinGeckoCollector(BaseCollector):
             "include_last_updated_at": "true",
         }
         try:
-            return await self.fetch(url, params=params)
+            result = await self.fetch(url, params=params)
+            return result
         except Exception as e:
             logger.error("coingecko.simple_price_failed", error=str(e))
             return {}
