@@ -19,7 +19,7 @@ if [ ! -f .env ]; then
 fi
 
 # Check required environment variables
-echo "[1/6] Checking configuration..."
+echo "[1/7] Checking configuration..."
 REQUIRED_VARS=(
     "POSTGRES_PASSWORD"
     "TELEGRAM_BOT_TOKEN"
@@ -39,23 +39,34 @@ if [ ${MISSING} -gt 0 ]; then
 fi
 
 # Create required directories
-echo "[2/6] Creating directories..."
+echo "[2/7] Creating directories..."
 mkdir -p backups certbot/conf certbot/www nginx/conf.d
 
+# Generate self-signed cert if no SSL certs exist (so Nginx can start)
+if [ ! -f certbot/conf/live/cryptoscan/fullchain.pem ]; then
+    echo "  Generating self-signed placeholder certificate for Nginx..."
+    mkdir -p certbot/conf/live/cryptoscan
+    openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+        -keyout certbot/conf/live/cryptoscan/privkey.pem \
+        -out certbot/conf/live/cryptoscan/fullchain.pem \
+        -subj "/CN=localhost" 2>/dev/null
+    echo "  Self-signed cert created. Run init-ssl.sh later for real certs."
+fi
+
 # Pull latest images
-echo "[3/6] Pulling latest images..."
+echo "[3/7] Pulling latest images..."
 docker compose -f docker-compose.prod.yml pull
 
 # Build application image
-echo "[4/6] Building application..."
+echo "[4/7] Building application..."
 docker compose -f docker-compose.prod.yml build --no-cache api
 
 # Stop existing services
-echo "[5/6] Stopping existing services..."
+echo "[5/7] Stopping existing services..."
 docker compose -f docker-compose.prod.yml down --remove-orphans 2>/dev/null || true
 
 # Start all services
-echo "[6/6] Starting services..."
+echo "[6/7] Starting services..."
 docker compose -f docker-compose.prod.yml up -d
 
 # Wait for services to be healthy
@@ -64,8 +75,7 @@ echo "Waiting for services to start..."
 sleep 10
 
 # Health check
-echo ""
-echo "Running health checks..."
+echo "[7/7] Running health checks..."
 
 API_STATUS=$(curl -sf http://localhost:8000/health 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','unknown'))" 2>/dev/null || echo "unreachable")
 echo "  API:       ${API_STATUS}"

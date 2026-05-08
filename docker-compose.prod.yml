@@ -106,7 +106,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     depends_on:
       redis:
         condition: service_healthy
@@ -134,13 +134,13 @@ services:
     command:
       - postgres
       - -c
-      - shared_buffers=2GB
+      - shared_buffers=${PG_SHARED_BUFFERS:-512MB}
       - -c
-      - effective_cache_size=6GB
+      - effective_cache_size=${PG_EFFECTIVE_CACHE_SIZE:-1536MB}
       - -c
-      - work_mem=64MB
+      - work_mem=${PG_WORK_MEM:-32MB}
       - -c
-      - maintenance_work_mem=512MB
+      - maintenance_work_mem=${PG_MAINTENANCE_WORK_MEM:-256MB}
       - -c
       - max_connections=200
       - -c
