@@ -19,33 +19,32 @@ mkdir -p certbot/conf certbot/www
 sed -i "s/server_name _;/server_name ${DOMAIN};/g" nginx/conf.d/default.conf
 sed -i "s|/etc/letsencrypt/live/cryptoscan/|/etc/letsencrypt/live/${DOMAIN}/|g" nginx/conf.d/default.conf
 
-# Step 1: Start Nginx with HTTP-only config for ACME challenge
-echo "[1/3] Starting Nginx for ACME challenge..."
+# Step 1: Generate self-signed cert as placeholder so Nginx can start with the SSL block
+echo "[1/4] Generating temporary self-signed certificate..."
+mkdir -p "certbot/conf/live/${DOMAIN}"
+openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+    -keyout "certbot/conf/live/${DOMAIN}/privkey.pem" \
+    -out "certbot/conf/live/${DOMAIN}/fullchain.pem" \
+    -subj "/CN=${DOMAIN}" 2>/dev/null
 
-# Create temporary Nginx config (HTTP only)
-cat > /tmp/nginx-temp.conf << 'EOF'
-server {
-    listen 80;
-    server_name _;
-    location /.well-known/acme-challenge/ { root /var/www/certbot; }
-    location / { return 200 'OK'; add_header Content-Type text/plain; }
-}
-EOF
-
+# Step 2: Start Nginx (HTTP server works, SSL block uses temp cert)
+echo "[2/4] Starting Nginx..."
 docker compose -f docker-compose.prod.yml up -d nginx
+sleep 3
 
-# Step 2: Request certificate
-echo "[2/3] Requesting certificate from Let's Encrypt..."
+# Step 3: Request real certificate from Let's Encrypt
+echo "[3/4] Requesting certificate from Let's Encrypt..."
 docker compose -f docker-compose.prod.yml run --rm certbot \
     certbot certonly --webroot \
     --webroot-path=/var/www/certbot \
     --email "${EMAIL}" \
     --agree-tos \
     --no-eff-email \
+    --force-renewal \
     -d "${DOMAIN}"
 
-# Step 3: Restart Nginx with SSL config
-echo "[3/3] Restarting Nginx with SSL..."
+# Step 4: Restart Nginx to load real certificate
+echo "[4/4] Restarting Nginx with real SSL certificate..."
 docker compose -f docker-compose.prod.yml restart nginx
 
 echo ""

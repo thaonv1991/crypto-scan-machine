@@ -3,7 +3,8 @@
 # Run daily via cron: 0 3 * * * /opt/cryptoscan/scripts/backup.sh
 set -euo pipefail
 
-BACKUP_DIR="/backups"
+CONTAINER_NAME="cryptoscan-postgres"
+BACKUP_DIR="./backups"
 DB_NAME="cryptoscan"
 DB_USER="cryptoscan"
 RETENTION_DAYS=7
@@ -14,8 +15,8 @@ mkdir -p "${BACKUP_DIR}"
 
 echo "[$(date)] Starting backup of ${DB_NAME}..."
 
-# Dump database (compressed)
-pg_dump -U "${DB_USER}" -d "${DB_NAME}" --no-owner --no-privileges | gzip > "${BACKUP_FILE}"
+# Dump database via docker exec (compressed)
+docker exec "${CONTAINER_NAME}" pg_dump -U "${DB_USER}" -d "${DB_NAME}" --no-owner --no-privileges | gzip > "${BACKUP_FILE}"
 
 # Check backup file was created and has content
 if [ ! -s "${BACKUP_FILE}" ]; then
