@@ -1,22 +1,14 @@
 # ---- Build stage ----
 FROM python:3.12-slim AS builder
 
-ENV POETRY_VERSION=1.8.4 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_NO_INTERACTION=1 \
-    POETRY_VIRTUALENVS_IN_PROJECT=1
-
-RUN pip install poetry==$POETRY_VERSION
-
-ENV PATH="$POETRY_HOME/bin:$PATH"
+# Install build dependencies for C-extensions (like uvloop, asyncpg)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create false \
-    && poetry install --only main --no-root
-
-COPY . .
-RUN poetry install --only main
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
 # ---- Runtime stage ----
 FROM python:3.12-slim AS runtime
@@ -28,10 +20,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd -r appuser && useradd -r -g appuser -d /app appuser
 
 WORKDIR /app
-COPY --from=builder /app /app
 
-ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH="/app" \
+# Copy installed Python packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY . .
+
+ENV PYTHONPATH="/app" \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
