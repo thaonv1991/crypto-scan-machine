@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Activity, ShieldAlert, Cpu, TrendingUp, AlertTriangle, 
-  ChevronRight, Filter, Download, Zap, Settings, ShieldCheck, 
-  Database, Server, RefreshCw, Layers, BrainCircuit
+  ChevronRight, Filter, Download, Settings, ShieldCheck, 
+  Database, Server, Layers, BrainCircuit
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { cn } from '../lib/utils';
