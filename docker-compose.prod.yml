@@ -27,7 +27,7 @@ services:
       dockerfile: Dockerfile.prod
     restart: always
     ports:
-      - "127.0.0.1:3000:80" # Nhốt cổng, chỉ Nginx được quyền truy cập
+      - "3000:80" # Đã mở cổng để có thể xem từ Windows
     networks:
       - internal_network
 
