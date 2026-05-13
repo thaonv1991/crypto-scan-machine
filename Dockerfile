@@ -6,9 +6,7 @@ ENV POETRY_VERSION=1.8.4 \
     POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl && \
-    curl -sSL https://install.python-poetry.org | python3 - && \
-    apt-get purge -y curl && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+RUN pip install poetry==$POETRY_VERSION
 
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
