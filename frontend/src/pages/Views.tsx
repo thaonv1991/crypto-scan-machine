@@ -5,7 +5,7 @@ import {
   ChevronRight, Filter, Download, Zap, Settings, ShieldCheck, 
   Database, Server, RefreshCw, Layers, BrainCircuit
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, BarChart, Bar } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { cn } from '../lib/utils';
 import { chartData, insightFeed, allMockTokens } from '../lib/data';
 
@@ -183,7 +183,7 @@ export const DashboardView = ({ onSelectToken }: { onSelectToken?: (token: any) 
 export const TokenTable = ({ onSelectToken }: { onSelectToken?: (token: any) => void }) => {
   const [timeFilter, setTimeFilter] = useState('All');
   const [tokens, setTokens] = useState<any[]>(allMockTokens);
-  const [isListening, setIsListening] = useState(true);
+  const [isListening] = useState(true);
   const [hoveredToken, setHoveredToken] = useState<any | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
