@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.admin import router as admin_router
 from app.api.health import router as health_router
 from app.api.projects import router as projects_router
+from app.api.auth import router as auth_router
+from app.api.ws import router as ws_router
 from app.core.config import settings
 from app.core.logging import setup_logging
 from app.core.redis import redis_client
@@ -50,10 +52,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Routers
-app.include_router(health_router)
-app.include_router(projects_router)
-app.include_router(admin_router)
+from fastapi import Depends
+from app.core.security import verify_api_key
+
+# Routers - Locked behind VIP API Key
+app.include_router(health_router) # Health is public
+app.include_router(auth_router) # Auth is public (Registration/Login)
+app.include_router(ws_router, prefix="/api/ws") # WebSocket is public/session-based
+app.include_router(projects_router, dependencies=[Depends(verify_api_key)])
+app.include_router(admin_router, dependencies=[Depends(verify_api_key)])
 
 
 @app.get("/")

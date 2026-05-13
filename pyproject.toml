@@ -26,6 +26,10 @@ python-telegram-bot = "^21.0"
 aiohttp = "^3.11.0"
 tenacity = "^9.0.0"
 psycopg2-binary = "^2.9.12"
+web3 = "^6.15.0"
+websockets = "^12.0"
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+PyJWT = "^2.8.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.0"

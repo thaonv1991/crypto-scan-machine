@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-main text-text-primary font-sans antialiased;
+    background-color: #05070d;
+    background-image: 
+      radial-gradient(circle at 15% 10%, rgba(124,92,255,0.22), transparent 32%),
+      radial-gradient(circle at 85% 20%, rgba(34,211,238,0.12), transparent 30%),
+      radial-gradient(circle at 50% 100%, rgba(16,242,160,0.06), transparent 30%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-panel backdrop-blur-[12px] border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)];
+  }
+  .glass-card {
+    @apply bg-card backdrop-blur-[12px] border border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.35)];
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-text-muted/30 rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-text-muted/50;
+}
+
+/* PRO Animations */
+@keyframes radar-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.radar-spin {
+  animation: radar-spin 4s linear infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  background: rgba(124, 92, 255, 0.5);
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+.pro-blur-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: linear-gradient(180deg, transparent 0%, rgba(5,7,13,0.9) 80%);
+}
+
+@keyframes alert-flash {
+  0%, 100% { 
+    opacity: 1; 
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.8); 
+    background-color: rgba(239, 68, 68, 0.35); 
+    border-color: rgba(239, 68, 68, 0.8);
+  }
+  50% { 
+    opacity: 0.8; 
+    box-shadow: 0 0 0px rgba(239, 68, 68, 0); 
+    background-color: rgba(239, 68, 68, 0.1); 
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+}
+
+.animate-alert-flash {
+  animation: alert-flash 0.8s ease-in-out infinite;
+}

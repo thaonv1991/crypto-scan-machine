@@ -30,15 +30,15 @@ celery_app.conf.update(
 )
 
 celery_app.conf.beat_schedule = {
-    # Engine 1: Scan new projects every 15 minutes
-    "scan-new-projects": {
+    # 🚀 RE-ENABLED: Momentum & Trending Engines (For old coins suddenly pumping)
+    # Re-activated to complement the Realtime Web3 Listener
+    "scan-trending-projects": {
         "task": "app.tasks.collector_tasks.scan_new_projects",
-        "schedule": crontab(minute="*/15"),
+        "schedule": crontab(minute="*/5"), # Scans DexScreener/CoinGecko Trending every 5 mins
     },
-    # Scan launchpads every 30 minutes
     "scan-launchpads": {
         "task": "app.tasks.collector_tasks.scan_launchpads",
-        "schedule": crontab(minute="*/30"),
+        "schedule": crontab(minute="*/15"),
     },
     # Engine 2: Collect market data every 5 minutes
     "collect-market-data": {
@@ -84,6 +84,11 @@ celery_app.conf.beat_schedule = {
     "daily-summary": {
         "task": "app.tasks.alert_tasks.send_daily_summary",
         "schedule": crontab(hour=8, minute=0),
+    },
+    # 🧠 Autonomous Agent Learning Loop: Runs daily at 1 AM
+    "agent-reflection-loop": {
+        "task": "app.tasks.scoring_tasks.run_agent_learning_loop",
+        "schedule": crontab(hour=1, minute=0),
     },
     # Cleanup: Archive old data daily at 3 AM
     "cleanup-old-data": {

@@ -92,3 +92,55 @@ def calculate_project_score(self, project_id: str):
     except Exception as exc:
         logger.error("task.calculate_project_score.error", project_id=project_id, error=str(exc))
         raise self.retry(exc=exc)
+
+
+async def _score_new_realtime_token(token_data: dict):
+    # This is where the AI and Smart Contract scanner kicks in immediately
+    # after a token is discovered via WebSocket
+    from app.services.processors.realtime_auditor import RealtimeAuditor
+    
+    auditor = RealtimeAuditor()
+    async with async_session_factory() as session:
+        try:
+            logger.info("⚡ Realtime AI Scoring Initiated", token=token_data['address'])
+            result = await auditor.run_instant_audit(session, token_data)
+            await session.commit()
+            
+            if result:
+@celery_app.task(bind=True, max_retries=1, default_retry_delay=60)
+def score_new_realtime_token(self, token_data: dict):
+    """
+    Instantly triggered by Web3 Listener when a new pair is created.
+    """
+    logger.info("task.score_new_realtime_token.start", token=token_data.get('address'))
+    try:
+        from app.services.processors.realtime_auditor import RealtimeAuditor
+        auditor = RealtimeAuditor()
+        
+        async def run():
+            async with async_session_factory() as db:
+                return await auditor.run_instant_audit(db, token_data)
+                
+        result = _run_async(run())
+        logger.info("task.score_new_realtime_token.done", result=result)
+    except Exception as exc:
+        logger.error("task.score_new_realtime_token.error", error=str(exc))
+        raise self.retry(exc=exc)
+
+
+@celery_app.task(bind=True, max_retries=1, default_retry_delay=300)
+def run_agent_learning_loop(self):
+    """
+    Runs daily to reflect on past AI predictions vs actual market outcomes.
+    """
+    logger.info("task.run_agent_learning_loop.start")
+    try:
+        from app.services.ai.agent_learner import crypto_agent
+        async def run():
+            async with async_session_factory() as db:
+                await crypto_agent.self_reflection_loop(db)
+        _run_async(run())
+        logger.info("task.run_agent_learning_loop.done")
+    except Exception as exc:
+        logger.error("task.run_agent_learning_loop.error", error=str(exc))
+        raise self.retry(exc=exc)
